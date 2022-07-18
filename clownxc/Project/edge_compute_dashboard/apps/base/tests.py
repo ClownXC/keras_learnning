@@ -82,6 +82,32 @@ class BaseTest(TestCase):
         self.assertNotEqual(token, None)
         self.token = token
 
+    def _k8s_apiserver(self):
+        """
+        测试集成 k8s
+        :return:
+        """
+        from kubernetes import client
+        host = "https://k8s-master:6443"
+        with open("./k8s_config/token", "r") as f:
+            token = f.read()
+
+        ssl_ca_cert = "./k8s_config/ca.crt"
+        configuration = client.Configuration()
+        configuration.host = host
+        configuration.api_key = {
+            'authorization': "Bearer " + token
+        }
+        configuration.ssl_ca_cert = ssl_ca_cert
+        configuration.verify_ssl = True
+        client.Configuration.set_default(configuration)
+        v1 = client.CoreV1Api()
+        print("Listing pods with their IPs: ")
+        ret = v1.list_pod_for_all_namespaces(watch=False)
+        for i in ret.items:
+            print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+
     def test(self):
-        self._gettoken()
-        self._testview()
+        # self._gettoken()
+        # self._testview()
+        self._k8s_apiserver()
